@@ -1,16 +1,16 @@
 ﻿using PhotoManager;
-
+using PhotoManager.Views;
 
 if (args.Length == 0)
 {
-    System.Console.WriteLine("Please put a folder path to begin cleanup");
+    DisplayView.StartMessage();
 }
 else
 {
     Console.WriteLine("Beginning cleanup");
 
     string filePath = args[0];
-    FileScan scanner = new FileScan();
+    PhotoReorganizer scanner = new PhotoReorganizer();
     scanner.CreateDirectories(filePath);
     scanner.MoveFiles(filePath);
 }

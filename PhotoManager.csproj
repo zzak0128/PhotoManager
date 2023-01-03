@@ -11,4 +11,9 @@
     <Folder Include="Published\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="12.2.2" />
+    <PackageReference Include="MediaDevices" Version="1.9.1" />
+  </ItemGroup>
+
 </Project>

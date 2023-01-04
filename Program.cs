@@ -18,7 +18,7 @@ else
             Console.WriteLine("Beginning import");
 
             string filePath = args[1];
-            PhotoFetcher.PhotoImport(filePath);
+            await PhotoFetcher.PhotoImport(filePath);
         }
     }
     else

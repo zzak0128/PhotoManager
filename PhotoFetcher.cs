@@ -6,11 +6,11 @@ namespace PhotoManager
 {
     public static class PhotoFetcher
     {
-        public static void PhotoImport(string filePath)
+        public static async Task PhotoImport(string filePath)
         {
             FetchPhotos(filePath);
-            ConvertFolder(filePath);
-            CleanupMOV(filePath);
+            await ConvertFolder(filePath);
+            await CleanupLivePhotos(filePath);
         }
 
         private static void FetchPhotos(string filePath)
@@ -40,69 +40,76 @@ namespace PhotoManager
             }
         }
 
-        private static void ConvertFolder(string folderPath)
+        private static async Task ConvertFolder(string folderPath)
         {
+            List<Task> tasks = new List<Task>();
             ShowMessage.Info($"Now converting images to jpg files");
             var dir = new DirectoryInfo(folderPath);
             foreach (var file in dir.GetFiles())
             {
                 if (file.Extension == ".HEIC")
                 {
-                    Console.WriteLine($"Converting: {file.Name}");
-                    ConvertToJpeg(MagickFormat.Jpg, file.FullName, file.DirectoryName);
-                    file.Delete();
+                    //Console.WriteLine($"Converting: {file.Name}");
+                    tasks.Add(ConvertToJpegAsync(MagickFormat.Jpg, file.FullName, file.DirectoryName));
+                    //await ConvertToJpegAsync(MagickFormat.Jpg, file.FullName, file.DirectoryName);
+                    //file.Delete();
                 }
                 else
                 {
-                    Console.WriteLine($"{file.Name} is not .HEIC... Skipping");
+                    //Console.WriteLine($"{file.Name} is not .HEIC... Skipping");
                 }
             }
+
+            await Task.WhenAll(tasks);
+
+            foreach (var file in dir.GetFiles())
+            {
+                if (file.Extension == ".HEIC")
+                {
+                    file.Delete();
+                }
+            }
+
             ShowMessage.Success("Files converted Successfully");
         }
 
-        private static void CleanupMOV(string folderPath)
+        private static async Task CleanupLivePhotos(string folderPath)
         {
-            ShowMessage.Info($"beginning cleanup of .MOV files...");
+            List<Task> tasks = new List<Task>();
+            ShowMessage.Info($"beginning cleanup of LivePhoto files...");
             var dir = new DirectoryInfo(folderPath);
             foreach (var file in dir.GetFiles())
             {
-                if(file.Extension == ".MOV" || file.Extension == ".AAE")
+                tasks.Add(Task.Run(() => DeleteFile(file)));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        private static void DeleteFile(FileInfo file)
+        {
+            if (file.Extension == ".MOV" || file.Extension == ".AAE")
+            {
+                var fileLength = (file.Length / 1024f) / 1024f;
+                if (fileLength < 6)
                 {
-                    var fileLength = (file.Length / 1024f) / 1024f;
-                    if (fileLength < 6)
-                    {
-                        Console.WriteLine($"Deleting: {file.Name}");
-                        file.Delete();
-                    }
+                    Console.WriteLine($"Deleting: {file.Name}");
+                    file.Delete();
                 }
             }
         }
 
-        private static void ConvertToJpeg(MagickFormat convertToFormat, string fileName, string outputPath)
+        private static async Task ConvertToJpegAsync(MagickFormat convertToFormat, string fileName, string outputPath)
         {
             try
             {
                 using var image = new MagickImage(fileName);
                 image.Format = convertToFormat;
-                image.Write($"{outputPath}/{Path.GetFileNameWithoutExtension(fileName)}.jpg");
+                await image.WriteAsync($"{outputPath}/{Path.GetFileNameWithoutExtension(fileName)}.jpg");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Could not write: {Path.GetFileName(fileName)}. Error: {ex.Message}");
-            }
-        }
-
-        private static void ConvertFile(string fileName)
-        {
-            string ext = Path.GetExtension(fileName).ToLowerInvariant();
-            if (ext == ".heic")
-            {
-                Console.WriteLine($"Found {Path.GetFileName(fileName)}. Converting to JPG...");
-                ConvertToJpeg(MagickFormat.Jpg, fileName, "./output");
-            }
-            else
-            {
-                Console.WriteLine($"{Path.GetFileName(fileName)} is not .HEIC... Skipping");
             }
         }
     }
